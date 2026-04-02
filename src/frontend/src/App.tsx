@@ -15,6 +15,7 @@ import {
 } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { SiGithub, SiLinkedin } from "react-icons/si";
+import { FloatingParticles } from "./components/FloatingParticles";
 import { ParticleBackground } from "./components/ParticleBackground";
 
 // Force dark mode on mount
@@ -1199,6 +1200,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-transparent text-foreground">
       <ParticleBackground />
+      <FloatingParticles />
       <Navbar />
       <main>
         <Hero />
