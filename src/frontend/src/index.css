@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    /* Dark-only Tron Ares theme — forced always */
+    --background: 0.08 0 0;
+    --foreground: 0.95 0 0;
+    --card: 0.12 0 0;
+    --card-foreground: 0.95 0 0;
+    --popover: 0.12 0 0;
+    --popover-foreground: 0.95 0 0;
+    --primary: 0.5 0.22 25;
+    --primary-foreground: 0.95 0 0;
+    --secondary: 0.18 0 0;
+    --secondary-foreground: 0.95 0 0;
+    --muted: 0.25 0 0;
+    --muted-foreground: 0.65 0 0;
+    --accent: 0.5 0.22 25;
+    --accent-foreground: 0.95 0 0;
+    --destructive: 0.5 0.22 25;
+    --destructive-foreground: 0.95 0 0;
+    --border: 0.5 0.22 25 / 30%;
+    --input: 0.5 0.22 25 / 20%;
+    --ring: 0.5 0.22 25;
+    --chart-1: 0.5 0.22 25;
+    --chart-2: 0.45 0.18 25;
+    --chart-3: 0.4 0.14 25;
+    --chart-4: 0.35 0.1 25;
+    --chart-5: 0.6 0.2 25;
+    --sidebar: 0.1 0 0;
+    --sidebar-foreground: 0.95 0 0;
+    --sidebar-primary: 0.5 0.22 25;
+    --sidebar-primary-foreground: 0.95 0 0;
+    --sidebar-accent: 0.18 0 0;
+    --sidebar-accent-foreground: 0.95 0 0;
+    --sidebar-border: 0.5 0.22 25 / 20%;
+    --sidebar-ring: 0.5 0.22 25;
+  }
+
+  /* Force dark — no light mode toggle */
+  .dark {
+    --background: 0.08 0 0;
+    --foreground: 0.95 0 0;
+    --card: 0.12 0 0;
+    --card-foreground: 0.95 0 0;
+    --popover: 0.12 0 0;
+    --popover-foreground: 0.95 0 0;
+    --primary: 0.5 0.22 25;
+    --primary-foreground: 0.95 0 0;
+    --secondary: 0.18 0 0;
+    --secondary-foreground: 0.95 0 0;
+    --muted: 0.25 0 0;
+    --muted-foreground: 0.65 0 0;
+    --accent: 0.5 0.22 25;
+    --accent-foreground: 0.95 0 0;
+    --destructive: 0.5 0.22 25;
+    --destructive-foreground: 0.95 0 0;
+    --border: 0.5 0.22 25 / 30%;
+    --input: 0.5 0.22 25 / 20%;
+    --ring: 0.5 0.22 25;
+    --chart-1: 0.5 0.22 25;
+    --chart-2: 0.45 0.18 25;
+    --chart-3: 0.4 0.14 25;
+    --chart-4: 0.35 0.1 25;
+    --chart-5: 0.6 0.2 25;
+    --sidebar: 0.1 0 0;
+    --sidebar-foreground: 0.95 0 0;
+    --sidebar-primary: 0.5 0.22 25;
+    --sidebar-primary-foreground: 0.95 0 0;
+    --sidebar-accent: 0.18 0 0;
+    --sidebar-accent-foreground: 0.95 0 0;
+    --sidebar-border: 0.5 0.22 25 / 20%;
+    --sidebar-ring: 0.5 0.22 25;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .neon-glow {
+    text-shadow: 0 0 20px oklch(0.5 0.22 25 / 80%), 0 0 40px
+      oklch(0.5 0.22 25 / 40%), 0 0 80px oklch(0.5 0.22 25 / 20%);
+  }
+
+  .neon-border {
+    box-shadow: 0 0 10px oklch(0.5 0.22 25 / 50%), inset 0 0 10px
+      oklch(0.5 0.22 25 / 10%);
+  }
+
+  .neon-border-hover:hover {
+    box-shadow: 0 0 20px oklch(0.5 0.22 25 / 70%), 0 0 40px
+      oklch(0.5 0.22 25 / 30%), inset 0 0 20px oklch(0.5 0.22 25 / 10%);
+  }
+
+  .glass {
+    background: oklch(0.12 0 0 / 70%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(0.5 0.22 25 / 20%);
+  }
+
+  .glass-dark {
+    background: oklch(0.08 0 0 / 80%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid oklch(0.5 0.22 25 / 15%);
+  }
+}
