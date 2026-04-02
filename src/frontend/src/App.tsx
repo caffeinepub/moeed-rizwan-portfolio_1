@@ -640,6 +640,13 @@ const PROJECT_CATEGORIES: ProjectCategory[] = [
   "Business",
 ];
 
+const CATEGORY_COLORS: Record<Exclude<ProjectCategory, "All">, string> = {
+  SaaS: "#dd2200",
+  "E-Commerce": "#ff4400",
+  Business: "#aa1a00",
+  Portfolio: "#ff6633",
+};
+
 // ─────────────────────────────────────────────
 // IframePreview — live site preview with fallback
 // ─────────────────────────────────────────────
@@ -647,7 +654,6 @@ const PROJECT_CATEGORIES: ProjectCategory[] = [
 function IframePreview({ url, name }: { url: string; name: string }) {
   const [failed, setFailed] = useState(false);
 
-  // Extract clean domain label
   let domain = url;
   try {
     domain = new URL(url).hostname.replace(/^www\./, "");
@@ -657,26 +663,28 @@ function IframePreview({ url, name }: { url: string; name: string }) {
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-sm group/preview"
+      className="relative w-full overflow-hidden group/preview"
       style={{ height: "180px" }}
     >
+      {/* CRT scanlines overlay */}
+      <div
+        className="absolute inset-0 crt-scanlines z-20 pointer-events-none opacity-[0.05]"
+        aria-hidden="true"
+      />
+
       {/* Neon border wrapper */}
       <div
-        className="absolute inset-0 rounded-sm border border-neon-red/30 group-hover/preview:border-neon-red/70 transition-all duration-300 pointer-events-none z-10"
-        style={{
-          boxShadow: "inset 0 0 0 1px transparent",
-        }}
+        className="absolute inset-0 border border-neon-red/30 group-hover/preview:border-neon-red/70 transition-all duration-300 pointer-events-none z-10"
+        style={{ boxShadow: "inset 0 0 0 1px transparent" }}
       />
 
       {failed ? (
-        /* Fallback: stylised domain panel */
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="flex flex-col items-center justify-center w-full h-full bg-black/60 backdrop-blur-sm gap-3 group/link"
         >
-          {/* Scan lines texture */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -697,7 +705,6 @@ function IframePreview({ url, name }: { url: string; name: string }) {
           </span>
         </a>
       ) : (
-        /* Live iframe preview */
         <>
           <iframe
             src={url}
@@ -712,7 +719,6 @@ function IframePreview({ url, name }: { url: string; name: string }) {
             }}
             onError={() => setFailed(true)}
           />
-          {/* Transparent click overlay — opens site in new tab */}
           <a
             href={url}
             target="_blank"
@@ -722,7 +728,6 @@ function IframePreview({ url, name }: { url: string; name: string }) {
           >
             <span className="sr-only">Open {name} in new tab</span>
           </a>
-          {/* Gradient fade at bottom */}
           <div
             className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none z-10"
             style={{
@@ -731,7 +736,6 @@ function IframePreview({ url, name }: { url: string; name: string }) {
             }}
             aria-hidden="true"
           />
-          {/* Hover shimmer */}
           <div
             className="absolute inset-0 opacity-0 group-hover/preview:opacity-100 pointer-events-none z-10 transition-opacity duration-300"
             style={{
@@ -748,50 +752,131 @@ function IframePreview({ url, name }: { url: string; name: string }) {
 }
 
 function ProjectCard({ project, index }: { project: Project; index: number }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const catColor = CATEGORY_COLORS[project.category] ?? "#dd2200";
+  const sysId = `SYS-${String(index + 1).padStart(2, "0")}`;
+
   return (
     <motion.article
-      variants={fadeUp}
-      custom={index}
-      whileHover={{
-        y: -6,
-        boxShadow: "0 0 30px rgba(221,34,0,0.35), 0 0 60px rgba(221,34,0,0.15)",
+      variants={{
+        hidden: { opacity: 0, x: -24, y: 16 },
+        visible: {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          transition: { duration: 0.55, ease: "easeOut", delay: index * 0.07 },
+        },
       }}
-      className="glass rounded-sm flex flex-col border border-primary/20 hover:border-neon-red/60 transition-all duration-300 group overflow-hidden"
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      animate={
+        isHovered
+          ? {
+              y: -6,
+              boxShadow:
+                "0 0 30px rgba(221,34,0,0.4), 0 0 60px rgba(221,34,0,0.18)",
+            }
+          : {
+              y: 0,
+              boxShadow: "0 0 0px rgba(221,34,0,0)",
+            }
+      }
+      className="relative flex flex-col overflow-hidden group/card transition-colors duration-300"
+      style={{
+        clipPath:
+          "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
+        background: "oklch(0.12 0 0 / 80%)",
+        backdropFilter: "blur(12px)",
+        border: isHovered
+          ? "1px solid rgba(221,34,0,0.6)"
+          : "1px solid rgba(221,34,0,0.2)",
+      }}
       data-ocid={`projects.item.${index + 1}`}
     >
-      {/* Iframe preview — only for live projects with URLs */}
+      {/* Category stripe — top bar */}
+      <div
+        className="w-full flex-shrink-0"
+        style={{
+          height: "6px",
+          background: catColor,
+          boxShadow: `0 0 8px ${catColor}80`,
+        }}
+      />
+
+      {/* Glowing red dot — top-left */}
+      <div
+        className="absolute top-3 left-3 w-[6px] h-[6px] rounded-full animate-dot-pulse z-20"
+        style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }}
+        aria-hidden="true"
+      />
+
+      {/* SYS-XX label — top-right */}
+      <div
+        className="absolute top-2.5 right-3 font-mono text-[10px] tracking-widest z-20 transition-opacity duration-300"
+        style={{
+          color: "rgba(221,34,0,0.35)",
+          opacity: isHovered ? 0.85 : 0.25,
+          textShadow: isHovered ? "0 0 8px rgba(221,34,0,0.6)" : "none",
+        }}
+        aria-hidden="true"
+      >
+        {sysId}
+      </div>
+
+      {/* Laser scan line on hover */}
+      <div
+        className="card-laser-scan absolute inset-0 z-30 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+      />
+
+      {/* Iframe preview — only for live projects */}
       {project.url && project.status !== "not-in-dev" && (
         <IframePreview url={project.url} name={project.name} />
       )}
 
       {/* Card body */}
-      <div className="p-6 flex flex-col gap-4 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-heading text-lg font-semibold text-foreground group-hover:text-neon-red transition-colors line-clamp-2">
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div className="flex items-start justify-between gap-2 mt-1">
+          <h3
+            className="font-heading text-base font-semibold text-foreground line-clamp-2 transition-all duration-200"
+            style={
+              isHovered
+                ? { textShadow: "0 0 8px rgba(221,34,0,0.5)", color: "#ff4422" }
+                : {}
+            }
+          >
             {project.name}
           </h3>
-          <span className="text-xs font-medium px-2 py-1 border border-neon-red/40 text-neon-red/80 rounded-sm shrink-0 tracking-wider uppercase">
-            {project.category}
-          </span>
         </div>
 
-        <p className="text-foreground/60 text-sm leading-relaxed flex-1">
+        <p className="text-foreground/55 text-sm leading-relaxed flex-1">
           {project.description}
         </p>
 
+        {/* Action row */}
         {project.status === "not-in-dev" && project.url ? (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-medium px-2.5 py-1 border border-yellow-500/40 text-yellow-400/80 rounded-sm tracking-wider uppercase">
-              Not in Development
+          <div className="flex items-center justify-between gap-3 mt-1">
+            {/* OFFLINE badge */}
+            <span
+              className="font-mono text-[11px] tracking-widest px-2.5 py-1 border"
+              style={{
+                borderColor: "rgba(251,191,36,0.4)",
+                color: "rgba(251,191,36,0.85)",
+                background: "rgba(251,191,36,0.06)",
+                clipPath:
+                  "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)",
+              }}
+            >
+              [[ OFFLINE ]]
             </span>
             <a
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-foreground/50 text-sm hover:text-neon-red/80 transition-colors duration-200"
+              className="font-mono text-[11px] tracking-widest text-foreground/40 hover:text-neon-red/70 transition-colors duration-200 flex items-center gap-1"
               data-ocid={`projects.link.${index + 1}`}
             >
-              View Link <ExternalLink size={12} />
+              VIEW LINK <ExternalLink size={10} />
             </a>
           </div>
         ) : project.url ? (
@@ -799,14 +884,31 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
             href={project.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-neon-red text-sm font-medium tracking-wide hover:gap-3 transition-all duration-200"
+            className="group/btn flex items-center gap-0 mt-1 w-fit transition-all duration-200"
+            style={{
+              borderLeft: "2px solid #dd2200",
+              borderBottom: "2px solid #dd2200",
+              padding: "4px 10px",
+              paddingLeft: "8px",
+            }}
             data-ocid={`projects.link.${index + 1}`}
           >
-            Visit Site <ExternalLink size={14} />
+            <span
+              className="font-mono text-[11px] tracking-[0.18em] text-neon-red font-medium"
+              style={{ textShadow: "0 0 6px rgba(221,34,0,0.5)" }}
+            >
+              [ LAUNCH
+            </span>
+            <span
+              className="font-mono text-[11px] text-neon-red transition-transform duration-200 group-hover/btn:translate-x-1 ml-1"
+              style={{ textShadow: "0 0 6px rgba(221,34,0,0.5)" }}
+            >
+              &gt; ]
+            </span>
           </a>
         ) : (
-          <span className="text-foreground/30 text-sm italic">
-            In Development
+          <span className="text-foreground/30 font-mono text-[11px] tracking-widest mt-1">
+            {"// IN DEVELOPMENT"}
           </span>
         )}
       </div>
@@ -814,8 +916,72 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
   );
 }
 
+// Animated count badge for filter tabs
+function CountBadge({
+  count,
+  animate: shouldAnimate,
+}: { count: number; animate: boolean }) {
+  const [key, setKey] = useState(0);
+
+  // Re-trigger animation when shouldAnimate fires
+  useState(() => {
+    if (shouldAnimate) setKey((k) => k + 1);
+  });
+
+  return (
+    <span
+      key={key}
+      className="ml-1.5 font-mono text-[10px] px-1.5 py-0.5 rounded-none"
+      style={{
+        background: "rgba(221,34,0,0.15)",
+        color: "rgba(221,34,0,0.8)",
+        border: "1px solid rgba(221,34,0,0.3)",
+        animation: shouldAnimate
+          ? "count-flash 0.4s ease-out forwards"
+          : "none",
+      }}
+    >
+      {count}
+    </span>
+  );
+}
+
+// Scan sweep line — triggers once on inView
+function ScanSweepLine({ inView }: { inView: boolean }) {
+  const [triggered, setTriggered] = useState(false);
+  const [key, setKey] = useState(0);
+
+  useEffect(() => {
+    if (inView && !triggered) {
+      setTriggered(true);
+      setKey((k) => k + 1);
+    }
+  }, [inView, triggered]);
+
+  if (!triggered) return null;
+
+  return (
+    <div
+      className="relative w-full h-px my-6 overflow-visible"
+      aria-hidden="true"
+    >
+      <div className="absolute inset-0 bg-neon-red/10" />
+      <div
+        key={key}
+        className="absolute top-0 h-full w-16 animate-scan-sweep"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(221,34,0,0.9), transparent)",
+          boxShadow: "0 0 12px rgba(221,34,0,0.7), 0 0 24px rgba(221,34,0,0.3)",
+        }}
+      />
+    </div>
+  );
+}
+
 function Projects() {
   const [activeFilter, setActiveFilter] = useState<ProjectCategory>("All");
+  const [prevFilter, setPrevFilter] = useState<ProjectCategory>("All");
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -823,6 +989,16 @@ function Projects() {
     activeFilter === "All"
       ? PROJECTS
       : PROJECTS.filter((p) => p.category === activeFilter);
+
+  const getCategoryCount = (cat: ProjectCategory) =>
+    cat === "All"
+      ? PROJECTS.length
+      : PROJECTS.filter((p) => p.category === cat).length;
+
+  const handleFilter = (cat: ProjectCategory) => {
+    setPrevFilter(activeFilter);
+    setActiveFilter(cat);
+  };
 
   return (
     <section id="projects" ref={ref} className="py-28 px-6 md:px-10 bg-card/30">
@@ -832,44 +1008,88 @@ function Projects() {
           animate={inView ? "visible" : "hidden"}
           variants={stagger}
         >
+          {/* Terminal-style label */}
           <motion.p
             variants={fadeUp}
-            className="text-neon-red text-sm tracking-[0.3em] uppercase mb-4 text-center"
+            className="font-mono text-neon-red text-xs tracking-[0.25em] mb-4 text-center flex items-center justify-center gap-2"
           >
-            Portfolio
+            <span style={{ textShadow: "0 0 8px rgba(221,34,0,0.7)" }}>
+              &gt; SYSTEM.PROJECTS
+            </span>
+            <span
+              className="inline-block w-2 h-3.5 animate-blink-cursor"
+              style={{
+                background: "#dd2200",
+                boxShadow: "0 0 6px rgba(221,34,0,0.9)",
+              }}
+              aria-hidden="true"
+            />
           </motion.p>
+
+          {/* Glitch title */}
           <motion.h2
             variants={fadeUp}
             className="font-heading text-4xl md:text-5xl font-bold text-foreground text-center mb-4"
           >
-            Featured <span className="text-neon-red">Projects</span>
+            Featured{" "}
+            <span
+              className="animate-glitch inline-block"
+              style={{ color: "#dd2200" }}
+            >
+              Projects
+            </span>
           </motion.h2>
-          <motion.div
-            variants={fadeUp}
-            className="w-16 h-0.5 bg-neon-red mx-auto mb-10"
-            style={{ boxShadow: "0 0 10px rgba(221,34,0,0.8)" }}
-          />
 
-          {/* Filter tabs */}
+          {/* Scan sweep rule */}
+          <motion.div variants={fadeUp}>
+            <ScanSweepLine inView={inView} />
+          </motion.div>
+
+          {/* HUD-style filter tabs */}
           <motion.div
             variants={fadeUp}
             className="flex flex-wrap gap-2 justify-center mb-12"
           >
-            {PROJECT_CATEGORIES.map((cat) => (
-              <button
-                type="button"
-                key={cat}
-                onClick={() => setActiveFilter(cat)}
-                className={`px-5 py-2 text-sm font-medium tracking-wider uppercase rounded-sm border transition-all duration-200 ${
-                  activeFilter === cat
-                    ? "bg-neon-red border-neon-red text-white shadow-neon"
-                    : "border-primary/30 text-foreground/60 hover:border-neon-red/60 hover:text-neon-red"
-                }`}
-                data-ocid="projects.filter.tab"
-              >
-                {cat}
-              </button>
-            ))}
+            {PROJECT_CATEGORIES.map((cat) => {
+              const isActive = activeFilter === cat;
+              const count = getCategoryCount(cat);
+              return (
+                <button
+                  type="button"
+                  key={cat}
+                  onClick={() => handleFilter(cat)}
+                  className="relative px-4 py-2 text-xs font-mono tracking-[0.15em] uppercase transition-all duration-200"
+                  style={
+                    isActive
+                      ? {
+                          background: "#dd2200",
+                          color: "#ffffff",
+                          border: "1px solid #dd2200",
+                          clipPath:
+                            "polygon(8px 0%, 100% 0%, 100% 100%, 0% 100%, 0% 8px)",
+                          boxShadow:
+                            "0 0 14px rgba(221,34,0,0.5), 0 0 28px rgba(221,34,0,0.2)",
+                          textShadow: "0 0 6px rgba(255,255,255,0.4)",
+                        }
+                      : {
+                          background: "transparent",
+                          color: "rgba(255,255,255,0.45)",
+                          borderLeft: "2px solid rgba(221,34,0,0.5)",
+                          borderBottom: "2px solid rgba(221,34,0,0.5)",
+                          borderTop: "1px solid transparent",
+                          borderRight: "1px solid transparent",
+                        }
+                  }
+                  data-ocid="projects.filter.tab"
+                >
+                  {cat}
+                  <CountBadge
+                    count={count}
+                    animate={prevFilter !== cat && activeFilter === cat}
+                  />
+                </button>
+              );
+            })}
           </motion.div>
 
           {/* Cards grid */}
@@ -886,6 +1106,17 @@ function Projects() {
               ))}
             </motion.div>
           </AnimatePresence>
+
+          {/* Footer record count */}
+          <motion.div
+            variants={fadeUp}
+            className="mt-12 text-center font-mono text-[11px] tracking-[0.2em]"
+            style={{ color: "rgba(221,34,0,0.3)", opacity: 0.7 }}
+          >
+            {"// END OF RECORDS — "}
+            {filtered.length}
+            {" PROJECTS LOADED"}
+          </motion.div>
         </motion.div>
       </div>
     </section>
