@@ -1,12 +1,4 @@
-import {
-  ChevronDown,
-  ExternalLink,
-  Mail,
-  MapPin,
-  Menu,
-  Phone,
-  X,
-} from "lucide-react";
+import { ExternalLink, Mail, MapPin, Menu, Phone, X } from "lucide-react";
 import {
   AnimatePresence,
   type Variants,
@@ -284,7 +276,7 @@ function SectionReveal({
       id={id}
       initial="hidden"
       animate={inView ? "visible" : "hidden"}
-      variants={fadeUp}
+      variants={stagger}
       className={className}
     >
       {children}
@@ -478,19 +470,7 @@ function Hero() {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-foreground/40 flex flex-col items-center gap-1"
-        animate={{ y: [0, 8, 0] }}
-        transition={{
-          duration: 2,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        }}
-      >
-        <span className="text-xs tracking-widest uppercase">Scroll</span>
-        <ChevronDown size={16} />
-      </motion.div>
+      {/* Scroll indicator removed */}
     </section>
   );
 }
@@ -572,17 +552,10 @@ function About() {
 // ─────────────────────────────────────────────
 
 function Skills() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
   return (
-    <section id="skills" ref={ref} className="py-28 px-6 md:px-10">
+    <SectionReveal id="skills" className="py-28 px-6 md:px-10">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-          variants={stagger}
-        >
+        <motion.div variants={stagger}>
           <motion.p
             variants={fadeUp}
             className="text-neon-red text-sm tracking-[0.3em] uppercase mb-4 text-center"
@@ -624,7 +597,7 @@ function Skills() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 
@@ -1001,7 +974,14 @@ function Projects() {
   };
 
   return (
-    <section id="projects" ref={ref} className="py-28 px-6 md:px-10 bg-card/30">
+    <motion.section
+      id="projects"
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="py-28 px-6 md:px-10"
+    >
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="hidden"
@@ -1119,7 +1099,7 @@ function Projects() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -1132,7 +1112,14 @@ function Experience() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="experience" ref={ref} className="py-28 px-6 md:px-10">
+    <motion.section
+      id="experience"
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="py-28 px-6 md:px-10"
+    >
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial="hidden"
@@ -1224,7 +1211,7 @@ function Experience() {
           </div>
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -1237,7 +1224,13 @@ function Certifications() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-16 px-6 md:px-10 bg-card/30">
+    <motion.section
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="py-16 px-6 md:px-10"
+    >
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial="hidden"
@@ -1277,7 +1270,7 @@ function Certifications() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -1290,7 +1283,14 @@ function Contact() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section id="contact" ref={ref} className="py-28 px-6 md:px-10">
+    <motion.section
+      id="contact"
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className="py-28 px-6 md:px-10"
+    >
       <div className="max-w-3xl mx-auto text-center">
         <motion.div
           initial="hidden"
@@ -1391,7 +1391,7 @@ function Contact() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 

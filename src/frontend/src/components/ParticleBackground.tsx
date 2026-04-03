@@ -1,39 +1,24 @@
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// p5aholic.me faithful port
-// Exact same snoise → pattern() domain-warp pipeline as Keita Yamada's shader.
-// Grain + blur textures replaced with procedural FBM noise blobs.
-// Colors: pure black (#000000) background → neon red (#dd2200) glow.
+// p5aholic.me-style GLSL background
+// Domain-warped FBM / simplex noise → smooth organic light blobs on black
+// Neon red (#dd2200) palette — exactly like Keita Yamada's shader effect
 // ─────────────────────────────────────────────────────────────────────────────
 
-const vertexShader = /* glsl */ `
-  attribute vec3 position;
-  attribute vec2 uv;
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 1.0);
-  }
+const VERT_SRC = `
+  attribute vec2 aPos;
+  void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 `;
 
-const fragmentShader = /* glsl */ `
+const FRAG_SRC = `
   precision highp float;
+  uniform float uTime;
+  uniform vec2  uRes;
 
-  uniform float time;
-  uniform float seed;
-  uniform vec2  resolution;
-
-  varying vec2 vUv;
-
-  #define PI 3.141592653589793
-
-  // ── Ashima / Ian McEwan simplex noise (exact p5aholic copy) ──────────────
-  vec3 mod289v3(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
-  vec2 mod289v2(vec2 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
-  vec3 permute3(vec3 x) { return mod289v3(((x * 34.0) + 10.0) * x); }
+  vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec2 mod289v(vec2 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec3 permute(vec3 x) { return mod289(((x*34.0)+10.0)*x); }
 
   float snoise(vec2 v) {
     const vec4 C = vec4(0.211324865405187, 0.366025403784439,
@@ -43,179 +28,170 @@ const fragmentShader = /* glsl */ `
     vec2 i1  = (x0.x > x0.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
     vec4 x12 = x0.xyxy + C.xxzz;
     x12.xy  -= i1;
-    i = mod289v2(i);
-    vec3 p = permute3(permute3(i.y + vec3(0.0,i1.y,1.0)) + i.x + vec3(0.0,i1.x,1.0));
-    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    i = mod289v(i);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
+                           + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+                             dot(x12.zw,x12.zw)), 0.0);
     m = m*m; m = m*m;
-    vec3 x  = 2.0 * fract(p * C.www) - 1.0;
-    vec3 h  = abs(x) - 0.5;
-    vec3 ox = floor(x + 0.5);
-    vec3 a0 = x - ox;
-    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+    vec3 x2 = 2.0*fract(p * C.www) - 1.0;
+    vec3 h  = abs(x2) - 0.5;
+    vec3 ox = floor(x2 + 0.5);
+    vec3 a0 = x2 - ox;
+    m *= 1.79284291400159 - 0.85373472095314*(a0*a0 + h*h);
     vec3 g;
-    g.x  = a0.x * x0.x  + h.x * x0.y;
-    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    g.x  = a0.x * x0.x   + h.x * x0.y;
+    g.yz = a0.yz* x12.xz  + h.yz* x12.yw;
     return 130.0 * dot(m, g);
   }
 
-  float snoise01(vec2 v) { return (1.0 + snoise(v)) * 0.5; }
-
-  // ── p5aholic noise2d: slow horizontal + vertical drift ───────────────────
-  float noise2d(vec2 st) {
-    return snoise01(vec2(st.x + time * 0.02, st.y - time * 0.04 + seed));
+  float fbm(vec2 p) {
+    float v = 0.0;
+    float a = 0.5;
+    vec2  shift = vec2(100.0);
+    mat2  rot   = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+    for (int i = 0; i < 5; i++) {
+      v += a * snoise(p);
+      p  = rot * p * 2.0 + shift;
+      a *= 0.5;
+    }
+    return v;
   }
 
-  // ── p5aholic domain-warp pattern ─────────────────────────────────────────
-  float pattern(vec2 p) {
-    vec2 q = vec2(noise2d(p + vec2(0.0, 0.0)),
-                  noise2d(p + vec2(5.2, 1.3)));
-    vec2 r = vec2(noise2d(p + 4.0*q + vec2(1.7, 9.2)),
-                  noise2d(p + 4.0*q + vec2(8.3, 2.8)));
-    return noise2d(p + 1.0*r);
-  }
-
-  // ── Procedural grain (replaces grainTex) ─────────────────────────────────
-  float grain(vec2 p) {
-    // cheap high-freq hash as grain texture substitute
-    vec2 ip = floor(p * 512.0);
-    float h = fract(sin(dot(ip, vec2(127.1, 311.7))) * 43758.5453);
-    return h;
-  }
-
-  // ── Procedural blobs (replaces blurTex alpha) ────────────────────────────
-  // Multiple soft Gaussian-like blobs drifting slowly, same domain-warp logic
-  float blobAlpha(vec2 uv) {
-    // 5 overlapping blobs at different offsets / scales
-    float b = 0.0;
-    b += smoothstep(0.72, 0.0, length(uv - vec2(0.35 + snoise01(vec2(time*0.015, 0.1))*0.15,
-                                                 0.55 + snoise01(vec2(0.2, time*0.012))*0.12)));
-    b += smoothstep(0.65, 0.0, length(uv - vec2(0.62 + snoise01(vec2(time*0.013, 1.5))*0.14,
-                                                 0.38 + snoise01(vec2(1.8, time*0.011))*0.13)));
-    b += smoothstep(0.58, 0.0, length(uv - vec2(0.18 + snoise01(vec2(time*0.017, 2.9))*0.12,
-                                                 0.72 + snoise01(vec2(3.1, time*0.014))*0.10)));
-    b += smoothstep(0.50, 0.0, length(uv - vec2(0.80 + snoise01(vec2(time*0.011, 4.3))*0.10,
-                                                 0.25 + snoise01(vec2(4.5, time*0.016))*0.11)));
-    b += smoothstep(0.60, 0.0, length(uv - vec2(0.50 + snoise01(vec2(time*0.009, 6.1))*0.18,
-                                                 0.50 + snoise01(vec2(6.3, time*0.010))*0.15)));
-    return clamp(b, 0.0, 1.0);
+  float pattern(vec2 p, float t) {
+    vec2 drift = p + vec2(t * 0.03, t * 0.045);
+    vec2 q = vec2(
+      fbm(drift + vec2(0.0, 0.0)),
+      fbm(drift + vec2(5.2, 1.3))
+    );
+    vec2 r = vec2(
+      fbm(drift + 3.5*q + vec2(1.7, 9.2)),
+      fbm(drift + 3.5*q + vec2(8.3, 2.8))
+    );
+    return fbm(drift + 3.5*r);
   }
 
   void main() {
-    vec2 uv = vUv;                         // 0..1
-    vec2 p  = gl_FragCoord.xy;             // pixel coords for grain
+    vec2 uv = (gl_FragCoord.xy / uRes.xy) * 8.0;
+    uv.x *= uRes.x / uRes.y;
 
-    // ── Grain displacement (param1=0.15, param2=0.18, matching p5aholic defaults)
-    float param1 = 0.15;
-    float param2 = 0.18;
-    float param3 = 1.8;                    // noise scale (p5aholic: ~1-2)
+    float f = pattern(uv, uTime);
+    float t = clamp(f * 0.5 + 0.5, 0.0, 1.0);
 
-    vec3 grainColor;
-    grainColor.r = grain(p * 0.0013);
-    grainColor.g = grain(p * 0.0017 + 0.5);
-    float blurAlpha = blobAlpha(uv);
+    vec3 black   = vec3(0.0,   0.0,   0.0);
+    vec3 deepRed = vec3(0.18,  0.02,  0.0);
+    vec3 neonRed = vec3(0.867, 0.133, 0.0);
+    vec3 hotTip  = vec3(1.0,   0.50,  0.08);
 
-    float gr = pow(grainColor.r, 1.5) + 0.5 * (1.0 - blurAlpha);
-    float gg = grainColor.g;
+    vec3 col;
+    if (t < 0.35) {
+      col = mix(black,   deepRed, t / 0.35);
+    } else if (t < 0.65) {
+      col = mix(deepRed, neonRed, (t - 0.35) / 0.30);
+    } else {
+      col = mix(neonRed, hotTip,  (t - 0.65) / 0.35);
+    }
 
-    float ax = param2 * gr * cos(gg * 2.0 * PI);
-    float ay = param2 * gr * sin(gg * 2.0 * PI);
-
-    // ── domain-warp sample coords ─────────────────────────────────────────
-    float ndx = param3 + 0.1 * (1.0 - blurAlpha);
-    float ndy = 2.0 * param3 + 0.1 * (1.0 - blurAlpha);
-    float nx = uv.x * ndx + ax;
-    float ny = uv.y * ndy + ay;
-    float n  = pattern(vec2(nx, ny));
-    n = pow(n * 1.05, 6.0);
-    n = smoothstep(0.0, 1.0, n);
-
-    // ── Color mapping: black → neon red (#dd2200) → bright orange-red ────
-    // back = pure black (0,0,0), front = neon red glow
-    vec3 back  = vec3(0.0, 0.0, 0.0);
-    vec3 front = vec3(0.867, 0.133, 0.0);  // #dd2200 normalised
-
-    // Layered glow: deep crimson core → neon red midtone → orange-red highlight
-    vec3 col = mix(back, front * 0.55, blurAlpha * 0.6);   // ambient blob glow
-    col = mix(col, front, n * blurAlpha);                   // domain-warp bright core
-    col += front * pow(n, 3.0) * 0.5 * blurAlpha;          // extra hotspot
-    col += vec3(1.0, 0.28, 0.04) * pow(n, 8.0) * blurAlpha * 0.4; // specular tip
-
-    // Outside blobs: near-pure black with ultra-faint red tint
-    col = mix(col, back + vec3(0.018, 0.0, 0.0), 1.0 - blurAlpha);
-
-    // Vignette
-    vec2 cv = vUv - 0.5;
-    float vignette = 1.0 - dot(cv, cv) * 1.6;
-    col *= clamp(vignette, 0.0, 1.0);
+    vec2 cv = (gl_FragCoord.xy / uRes.xy) - 0.5;
+    float vig = clamp(1.0 - dot(cv, cv) * 2.2, 0.0, 1.0);
+    col *= vig;
+    col  = pow(col, vec3(0.85));
 
     gl_FragColor = vec4(col, 1.0);
   }
 `;
 
-function ShaderPlane() {
-  const matRef = useRef<THREE.RawShaderMaterial>(null);
-  const { size } = useThree();
+function compileShader(
+  gl: WebGLRenderingContext,
+  type: number,
+  src: string,
+): WebGLShader {
+  const s = gl.createShader(type) as WebGLShader;
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
 
-  useEffect(() => {
-    if (matRef.current) {
-      matRef.current.uniforms.resolution.value.set(size.width, size.height);
-    }
-  }, [size]);
+function startGL(canvas: HTMLCanvasElement): () => void {
+  const gl = canvas.getContext("webgl", {
+    antialias: false,
+    alpha: false,
+    depth: false,
+    stencil: false,
+    powerPreference: "high-performance",
+  }) as WebGLRenderingContext | null;
+  if (!gl) return () => {};
 
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.uniforms.time.value = clock.getElapsedTime();
-    }
-  });
+  const prog = gl.createProgram() as WebGLProgram;
+  gl.attachShader(prog, compileShader(gl, gl.VERTEX_SHADER, VERT_SRC));
+  gl.attachShader(prog, compileShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC));
+  gl.linkProgram(prog);
 
-  return (
-    <mesh>
-      <planeGeometry args={[2, 2]} />
-      <rawShaderMaterial
-        ref={matRef}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={{
-          time: { value: 0 },
-          seed: { value: Math.random() * 100.0 },
-          resolution: {
-            value: new THREE.Vector2(
-              typeof window !== "undefined" ? window.innerWidth : 1920,
-              typeof window !== "undefined" ? window.innerHeight : 1080,
-            ),
-          },
-        }}
-        depthWrite={false}
-        depthTest={false}
-      />
-    </mesh>
+  WebGLRenderingContext.prototype.useProgram.call(gl, prog);
+
+  const buf = gl.createBuffer() as WebGLBuffer;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+    gl.STATIC_DRAW,
   );
+  const aPosLoc = gl.getAttribLocation(prog, "aPos");
+  gl.enableVertexAttribArray(aPosLoc);
+  gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const uTimeLoc = gl.getUniformLocation(prog, "uTime");
+  const uResLoc = gl.getUniformLocation(prog, "uRes");
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl!.viewport(0, 0, canvas.width, canvas.height);
+    gl!.uniform2f(uResLoc, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  const t0 = performance.now();
+  let rafId: number;
+
+  function draw() {
+    gl!.uniform1f(uTimeLoc, (performance.now() - t0) * 0.001);
+    gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+    rafId = requestAnimationFrame(draw);
+  }
+  rafId = requestAnimationFrame(draw);
+
+  return () => {
+    cancelAnimationFrame(rafId);
+    window.removeEventListener("resize", resize);
+    gl.deleteProgram(prog);
+    gl.deleteBuffer(buf);
+  };
 }
 
 export function ParticleBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    return startGL(canvas);
+  }, []);
+
   return (
-    <div
-      className="fixed inset-0 z-0"
-      aria-hidden="true"
-      style={{ pointerEvents: "none", background: "#000000" }}
-    >
-      <Canvas
-        orthographic
-        camera={{
-          left: -1,
-          right: 1,
-          top: 1,
-          bottom: -1,
-          near: 0,
-          far: 1,
-          position: [0, 0, 0.5],
-        }}
-        gl={{ antialias: false }}
-        dpr={[1, 1.5]}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <ShaderPlane />
-      </Canvas>
-    </div>
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+        background: "#000",
+      }}
+    />
   );
 }
