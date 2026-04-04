@@ -150,7 +150,6 @@ const PROJECTS: Project[] = [
       "Restaurant website for Lazzat Grill and Shakes in Brampton with menu and ordering.",
     url: "https://lazzat.ca/",
     category: "Business",
-    status: "not-in-dev",
   },
   {
     name: "OneVision",
@@ -161,78 +160,10 @@ const PROJECTS: Project[] = [
   },
 ];
 
-const EXPERIENCE = [
-  {
-    company: "Octet Solutions & Institute",
-    role: "Lead Developer",
-    period: "Sept 2025 – Present",
-    description:
-      "MERN Stack Instructor and Web Developer, focusing on practical skills and industry-standard workflows. Developing and maintaining web applications, collaborating with teams to build scalable, performance-driven solutions.",
-    current: true,
-  },
-  {
-    company: "The Vertex Technologies",
-    role: "Chief Technology Officer (CTO) & Lead Developer",
-    period: "Mar 2023 – Present",
-    description:
-      "Defining the company's technical vision, leading development teams, and delivering scalable, high-performance software solutions. Overseeing system architecture, technology selection, code quality, and security standards.",
-    current: true,
-  },
-  {
-    company: "PAC College 55T, Gulberg",
-    role: "AI Instructor (Part-Time)",
-    period: "Feb 2024 – Sept 2024",
-    description:
-      "Teaching artificial intelligence concepts and practical applications to college students.",
-    current: false,
-  },
-  {
-    company: "Peak Solutions College",
-    role: "Python Instructor (Part-time)",
-    period: "Aug 2023 – Nov 2024",
-    description:
-      "Delivering Python programming courses with focus on practical, industry-relevant skills.",
-    current: false,
-  },
-  {
-    company: "Azad Chaiwala Institute",
-    role: "Sr Django Instructor",
-    period: "Jul 2021 – Dec 2024",
-    description:
-      "Senior instructor for Django framework, mentoring students from fundamentals to advanced backend development.",
-    current: false,
-  },
-  {
-    company: "Fiverr",
-    role: "Freelancer / Web Developer",
-    period: "Feb 2021 – Feb 2023",
-    description:
-      "Delivered full-stack web development projects for international clients across various industries.",
-    current: false,
-  },
-  {
-    company: "Solution Geeks",
-    role: "Front End Developer / HTML Developer",
-    period: "Aug 2016 – Aug 2018",
-    description:
-      "Built responsive front-end interfaces and HTML templates for client projects.",
-    current: false,
-  },
-  {
-    company: "University of South Asia",
-    role: "Social Media Manager",
-    period: "During Studies",
-    description:
-      "Managed social media presence and digital communications for the university.",
-    current: false,
-  },
-];
-
 const NAV_LINKS = [
   { label: "About", href: "#about" },
   { label: "Skills", href: "#skills" },
   { label: "Projects", href: "#projects" },
-  { label: "Experience", href: "#experience" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -1104,177 +1035,6 @@ function Projects() {
 }
 
 // ─────────────────────────────────────────────
-// Experience Timeline
-// ─────────────────────────────────────────────
-
-function Experience() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  return (
-    <motion.section
-      id="experience"
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="py-28 px-6 md:px-10"
-    >
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-          variants={stagger}
-        >
-          <motion.p
-            variants={fadeUp}
-            className="text-neon-red text-sm tracking-[0.3em] uppercase mb-4 text-center"
-          >
-            Career
-          </motion.p>
-          <motion.h2
-            variants={fadeUp}
-            className="font-heading text-4xl md:text-5xl font-bold text-foreground text-center mb-4"
-          >
-            Work <span className="text-neon-red">Experience</span>
-          </motion.h2>
-          <motion.div
-            variants={fadeUp}
-            className="w-16 h-0.5 bg-neon-red mx-auto mb-16"
-            style={{ boxShadow: "0 0 10px rgba(221,34,0,0.8)" }}
-          />
-
-          {/* Timeline */}
-          <div className="relative">
-            {/* Vertical line */}
-            <div
-              className="absolute left-4 md:left-8 top-0 bottom-0 w-px"
-              style={{
-                background:
-                  "linear-gradient(to bottom, rgba(221,34,0,0.8), rgba(221,34,0,0.1))",
-              }}
-            />
-
-            <div className="flex flex-col gap-10">
-              {EXPERIENCE.map((exp, i) => (
-                <motion.div
-                  key={exp.company}
-                  variants={fadeUp}
-                  className="relative pl-14 md:pl-20"
-                  data-ocid={`experience.item.${i + 1}`}
-                >
-                  {/* Node */}
-                  <div
-                    className={`absolute left-1.5 md:left-5 top-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      exp.current
-                        ? "border-neon-red bg-neon-red/20 animate-pulse-glow"
-                        : "border-neon-red/50 bg-background"
-                    }`}
-                    style={
-                      exp.current
-                        ? { boxShadow: "0 0 12px rgba(221,34,0,0.7)" }
-                        : {}
-                    }
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full ${exp.current ? "bg-neon-red" : "bg-neon-red/40"}`}
-                    />
-                  </div>
-
-                  <div className="glass rounded-sm p-6 border border-primary/20 hover:border-neon-red/40 transition-all duration-300">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                      <div>
-                        <h3 className="font-heading text-lg font-semibold text-foreground">
-                          {exp.company}
-                        </h3>
-                        <p className="text-neon-red text-sm font-medium">
-                          {exp.role}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs font-medium px-3 py-1 rounded-sm border shrink-0 tracking-wider ${
-                          exp.current
-                            ? "border-neon-red/60 text-neon-red bg-neon-red/10"
-                            : "border-primary/30 text-foreground/50"
-                        }`}
-                      >
-                        {exp.period}
-                      </span>
-                    </div>
-                    <p className="text-foreground/60 text-sm leading-relaxed">
-                      {exp.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </motion.section>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Certifications Section
-// ─────────────────────────────────────────────
-
-function Certifications() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  return (
-    <motion.section
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="py-16 px-6 md:px-10"
-    >
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-          variants={stagger}
-        >
-          <motion.p
-            variants={fadeUp}
-            className="text-neon-red text-sm tracking-[0.3em] uppercase mb-4 text-center"
-          >
-            Achievements
-          </motion.p>
-          <motion.h2
-            variants={fadeUp}
-            className="font-heading text-3xl md:text-4xl font-bold text-foreground text-center mb-10"
-          >
-            <span className="text-neon-red">Certifications</span>
-          </motion.h2>
-
-          <motion.div variants={fadeUp}>
-            <div className="glass rounded-sm p-6 border border-primary/20 neon-border flex items-center gap-6">
-              <div
-                className="w-12 h-12 rounded-sm border border-neon-red/60 bg-neon-red/10 flex items-center justify-center shrink-0"
-                style={{ boxShadow: "0 0 15px rgba(221,34,0,0.4)" }}
-              >
-                <span className="text-neon-red text-xl font-bold font-heading">
-                  ✦
-                </span>
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-semibold text-foreground">
-                  DevOps Certification
-                </h3>
-                <p className="text-neon-red text-sm font-medium">MindLabs</p>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
-    </motion.section>
-  );
-}
-
-// ─────────────────────────────────────────────
 // Contact Section
 // ─────────────────────────────────────────────
 
@@ -1438,8 +1198,6 @@ export default function App() {
         <About />
         <Skills />
         <Projects />
-        <Experience />
-        <Certifications />
         <Contact />
       </main>
       <Footer />
