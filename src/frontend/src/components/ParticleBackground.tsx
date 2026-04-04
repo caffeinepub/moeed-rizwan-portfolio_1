@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// p5aholic.me-style animated background
-// Domain-warped FBM shader with deep color variation — neon red palette
-// Multiple layers of domain-warped noise create the organic flowing blobs
+// p5aholic.me-style background: flowing particle wave field
+// Uses domain-warped simplex noise to create organic, flowing wave patterns
+// The effect looks like soft light waves / aurora ripples — NOT solid blobs
 // ─────────────────────────────────────────────────────────────────────────────
 
 const VERT_SRC = `
@@ -16,111 +16,126 @@ const FRAG_SRC = `
   uniform float uTime;
   uniform vec2  uRes;
 
-  // Simplex noise helpers (Ashima Arts)
-  vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
-  vec2 mod289(vec2 x)  { return x - floor(x * (1.0/289.0)) * 289.0; }
-  vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+  // ─── Simplex noise (Ashima Arts / Ian McEwan) ─────────────────────────────
+  vec3 mod289(vec3 x){ return x - floor(x*(1./289.))*289.; }
+  vec2 mod289(vec2 x){ return x - floor(x*(1./289.))*289.; }
+  vec3 permute(vec3 x){ return mod289(((x*34.)+1.)*x); }
 
-  float snoise(vec2 v) {
-    const vec4 C = vec4( 0.211324865405187,
-                         0.366025403784439,
-                        -0.577350269189626,
-                         0.024390243902439);
+  float snoise(vec2 v){
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                       -0.577350269189626, 0.024390243902439);
     vec2 i  = floor(v + dot(v, C.yy));
     vec2 x0 = v - i + dot(i, C.xx);
-    vec2 i1  = x0.x > x0.y ? vec2(1.0,0.0) : vec2(0.0,1.0);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.,0.) : vec2(0.,1.);
     vec4 x12 = x0.xyxy + C.xxzz;
-    x12.xy  -= i1;
+    x12.xy -= i1;
     i = mod289(i);
-    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0))
-                           + i.x + vec3(0.0, i1.x, 1.0));
-    vec3 m = max(0.5 - vec3(dot(x0,x0),
-                             dot(x12.xy,x12.xy),
-                             dot(x12.zw,x12.zw)), 0.0);
+    vec3 p = permute(permute(i.y + vec3(0.,i1.y,1.))
+                           + i.x + vec3(0.,i1.x,1.));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.);
     m = m*m*m*m;
-    vec3 x2 = 2.0*fract(p * C.www) - 1.0;
+    vec3 x2 = 2.*fract(p*C.www) - 1.;
     vec3 h  = abs(x2) - 0.5;
     vec3 ox = floor(x2 + 0.5);
     vec3 a0 = x2 - ox;
     m *= 1.79284291400159 - 0.85373472095314*(a0*a0 + h*h);
     vec3 g;
-    g.x  = a0.x*x0.x    + h.x*x0.y;
+    g.x  = a0.x*x0.x  + h.x*x0.y;
     g.yz = a0.yz*x12.xz + h.yz*x12.yw;
-    return 130.0 * dot(m, g);
+    return 130. * dot(m, g);
   }
 
-  // 6-octave fractional Brownian motion
-  float fbm(vec2 p) {
-    float sum = 0.0;
-    float amp = 0.5;
-    float freq = 1.0;
-    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-    for (int i = 0; i < 6; i++) {
-      sum  += amp * snoise(p * freq);
-      p     = rot * p + vec2(3.7, 1.4);
-      amp  *= 0.5;
-      freq *= 2.0;
+  // ─── FBM with rotation to avoid axis-alignment artefacts ─────────────────
+  float fbm(vec2 p){
+    float v = 0., a = 0.5;
+    mat2 rot = mat2( 0.80,  0.60,
+                    -0.60,  0.80);  // ~36.87 deg
+    for(int i=0; i<5; i++){
+      v  += a * snoise(p);
+      p   = rot * p * 2.0;
+      a  *= 0.5;
     }
-    return sum;
+    return v;
   }
 
-  // 3-level domain-warp — creates the nested blob-within-blob look
-  float domainWarp(vec2 p, float t) {
-    // Layer 0: slow drift
-    vec2 p0 = p + vec2(t * 0.04, t * 0.025);
+  // ─── Wave-field: creates the flowing "light wave" look ───────────────────
+  // Two layers of domain-warped FBM, combined to produce thin flowing bands
+  float waveField(vec2 p, float t){
+    // Slow drift
+    vec2 pd = p + vec2(t * 0.06, t * 0.04);
 
-    // Layer 1: warp by fbm
+    // First warp — creates the large sweeping curves
     vec2 q = vec2(
-      fbm(p0 + vec2(0.0,  0.0)),
-      fbm(p0 + vec2(5.2,  1.3))
+      fbm(pd + vec2(0.0, 0.0)),
+      fbm(pd + vec2(5.2, 1.3))
     );
 
-    // Layer 2: warp by warped fbm
+    // Second warp — adds the tight wave bands
     vec2 r = vec2(
-      fbm(p0 + 4.0*q + vec2(1.7, 9.2) + t*0.015),
-      fbm(p0 + 4.0*q + vec2(8.3, 2.8) + t*0.010)
+      fbm(pd + 3.0*q + vec2(1.7, 9.2) + t*0.012),
+      fbm(pd + 3.0*q + vec2(8.3, 2.8) + t*0.008)
     );
 
-    // Layer 3: final value
-    return fbm(p0 + 4.0*r + t*0.008);
+    return fbm(pd + 3.5*r);
   }
 
-  void main() {
-    // UV — aspect-corrected, centered slightly higher
-    vec2 uv = gl_FragCoord.xy / uRes.xy;
-    vec2 p  = uv * vec2(uRes.x / uRes.y, 1.0) * 3.5;
+  // ─── Particle wave: sharp sine bands over the noise field ────────────────
+  float particleWave(vec2 p, float t){
+    float field = waveField(p, t);
 
-    float f = domainWarp(p, uTime);
-    // f is roughly in [-1, 1]; map to [0,1]
-    float t = clamp(f * 0.5 + 0.5, 0.0, 1.0);
+    // Create multiple wave bands — the sine wave turns smooth noise into
+    // sharp, thin wave stripes that look like particle lines
+    float waves  = sin(field * 12.0 + t * 0.4) * 0.5 + 0.5;
+    float waves2 = sin(field *  7.0 - t * 0.25 + 1.5) * 0.5 + 0.5;
+    float waves3 = sin(field * 18.0 + t * 0.18 + 3.0) * 0.5 + 0.5;
 
-    // ── Color ramp — 5 stops, p5aholic-inspired with neon red palette ──
-    // 0.00 → 0.20  black → very dark red
-    // 0.20 → 0.45  very dark red → deep crimson
-    // 0.45 → 0.68  deep crimson → vivid neon red
-    // 0.68 → 0.85  neon red → bright orange-red
-    // 0.85 → 1.00  orange-red → near-white hot tip
-    vec3 c0 = vec3(0.00, 0.00, 0.00);  // black
-    vec3 c1 = vec3(0.10, 0.01, 0.00);  // very dark red
-    vec3 c2 = vec3(0.32, 0.03, 0.00);  // deep crimson
-    vec3 c3 = vec3(0.87, 0.13, 0.00);  // neon red  #dd2200
-    vec3 c4 = vec3(1.00, 0.38, 0.05);  // bright orange-red
-    vec3 c5 = vec3(1.00, 0.75, 0.45);  // hot white tip
+    // Soft power to make wave peaks sharp (like lit lines)
+    waves  = pow(waves,  4.0);
+    waves2 = pow(waves2, 5.0);
+    waves3 = pow(waves3, 6.0);
+
+    // Blend — primary waves dominate, finer detail layers underneath
+    float combined = waves * 0.55 + waves2 * 0.30 + waves3 * 0.15;
+
+    // Modulate amplitude by the underlying field to cluster brightness
+    float amp = smoothstep(-0.1, 0.6, field);
+    return combined * amp;
+  }
+
+  void main(){
+    vec2 uv = gl_FragCoord.xy / uRes;
+    // Aspect-correct centered UV, scaled to match p5aholic field density
+    vec2 p  = (uv - 0.5) * vec2(uRes.x / uRes.y, 1.0) * 2.8;
+
+    float intensity = particleWave(p, uTime);
+
+    // ─── Color ramp: dark → neon red → bright tip ──────────────────────────
+    // Very low intensity: pure black
+    // Mid intensity: deep dark red glow
+    // High intensity: vivid #dd2200 neon red
+    // Peak: bright orange-red / near-white hot tip
+    vec3 dark   = vec3(0.00, 0.00, 0.00);   // black
+    vec3 glow   = vec3(0.08, 0.01, 0.00);   // deep dark red
+    vec3 mid    = vec3(0.45, 0.05, 0.00);   // dark crimson
+    vec3 neon   = vec3(0.867, 0.133, 0.00); // #dd2200 neon red
+    vec3 bright = vec3(1.00, 0.50, 0.12);   // orange-red
+    vec3 tip    = vec3(1.00, 0.85, 0.60);   // near-white hot
 
     vec3 col;
-    if      (t < 0.20) col = mix(c0, c1, t / 0.20);
-    else if (t < 0.45) col = mix(c1, c2, (t-0.20)/0.25);
-    else if (t < 0.68) col = mix(c2, c3, (t-0.45)/0.23);
-    else if (t < 0.85) col = mix(c3, c4, (t-0.68)/0.17);
-    else               col = mix(c4, c5, (t-0.85)/0.15);
+    float t2 = clamp(intensity, 0.0, 1.0);
+    if      (t2 < 0.12) col = mix(dark,   glow,   t2 / 0.12);
+    else if (t2 < 0.30) col = mix(glow,   mid,    (t2-0.12)/0.18);
+    else if (t2 < 0.55) col = mix(mid,    neon,   (t2-0.30)/0.25);
+    else if (t2 < 0.78) col = mix(neon,   bright, (t2-0.55)/0.23);
+    else                col = mix(bright, tip,    (t2-0.78)/0.22);
 
-    // Subtle vignette
-    vec2 cv = uv - 0.5;
-    float vig = 1.0 - dot(cv, cv) * 1.6;
+    // Vignette — darkens corners
+    vec2 cv  = uv - 0.5;
+    float vig = 1.0 - dot(cv, cv) * 1.8;
     col *= clamp(vig, 0.0, 1.0);
 
-    // Gamma correction (mild — keeps neons punchy)
-    col = pow(max(col, vec3(0.0)), vec3(0.9));
+    // Slight gamma for punch
+    col = pow(max(col, vec3(0.0)), vec3(0.85));
 
     gl_FragColor = vec4(col, 1.0);
   }
