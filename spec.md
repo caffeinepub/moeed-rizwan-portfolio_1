@@ -1,53 +1,37 @@
 # Moeed Rizwan Portfolio
 
 ## Current State
-The portfolio is a traditional single-page scrolling layout with:
-- Top fixed navbar (MR logo + nav links)
-- Full-page sections stacked vertically: Hero, About, Skills, Projects, Contact, Footer
-- Animated WebGL shader background (FBM neon red blobs)
-- Floating particles canvas layer
-- All sections always visible via scrolling
+The background animation (`ParticleBackground.tsx`) uses a raw WebGL nano-particle grid shader: a 65×65 grid of dots lit by 6 independent traveling wave packets using sine-band ripples. Colors are in a pure red ramp (#dd2200 family). The shader uses simplex-like math via `fbm()` approximation with sin sums, not true procedural noise.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Fixed left sidebar matching p5aholic.me layout exactly: name at top, role label, nav items with dot indicators
-- Thin decorative frame lines on all 4 screen edges (like p5aholic.me)
-- Copyright text fixed at bottom-left
-- Intro/enter view with name + "Portfolio" text that animates out on load
-- Page-based navigation: each nav item (Home, About, Skills, Projects, Contact) reveals that page's content; only one page visible at a time
-- Animated page transitions (fade/slide in when nav is clicked)
-- Active nav item highlighted with neon red dot indicator
+- Full-screen GLSL shader background using procedural simplex noise (Ashima-style or equivalent in GLSL)
+- Multi-octave domain-warped FBM producing smooth, organic flowing energy field
+- Time uniform (`uTime`) animating the field continuously
+- Neon color palette: deep red, orange, magenta — Tron/Ares-inspired
+- Soft bloom/glow post-processing: additive multi-sample blur pass in shader (or CSS filter fallback)
+- Subtle wave distortion and organic movement
+- Gradient blending for fluid abstract energy field look
 
 ### Modify
-- Remove old scrolling navbar, hero section, and footer
-- Remove FloatingParticles layer (keep ParticleBackground WebGL shader)
-- Convert all sections into "pages" that appear/disappear based on active nav state
-- Home page: shows the about-me bio text in p5aholic style (centered, large, flowing text)
-- Projects page: keep existing HUD-style project cards but inside the page layout
-- Skills page: existing skill badges inside page layout
-- Contact page: existing contact info inside page layout
-- All pages float over the animated background (transparent/semi-transparent panels)
+- Replace current nano-particle wave shader with new fluid energy field shader
+- Color ramp updated to include magenta and orange alongside deep red
+- Keep same WebGL raw loop architecture (no Three.js/R3F) for stability
 
 ### Remove
-- Scrolling layout (no more scroll-based reveal)
-- Top navbar
-- Hero section (replaced by sidebar + home page)
-- Footer (replaced by copyright text in bottom-left)
-- FloatingParticles component usage
+- Nano-particle grid approach (dot rendering, cell-based math)
+- Pure red-only color ramp
+- Individual traveling wave packet system
 
 ## Implementation Plan
-1. Rewrite App.tsx with:
-   - `EnterView` component: full-screen intro overlay with name + "Portfolio" that fades out after ~1.5s
-   - `Frame` component: 4 thin decorative lines on screen edges using fixed positioning
-   - `SideHeader` component: fixed left sidebar with name, role, nav items with dot + active state
-   - `Copyright` component: fixed bottom-left copyright
-   - `PageContent` component: full-screen content area (left of sidebar) that renders active page
-   - Pages: Home (bio text), About (glass card), Skills (badges), Projects (HUD cards), Contact (contact info)
-   - State: `activePage` controls which page is shown
-   - Nav items: Home, About, Skills, Projects, Contact
-   - Transitions: AnimatePresence with fade for page changes
-2. Style sidebar to be minimal: fixed left, vertically centered nav, neon red dots and active highlighting with #dd2200
-3. Keep ParticleBackground WebGL shader as always-on background
-4. Make all page content panels transparent/glass over the shader
-5. Remove FloatingParticles from render tree
+1. Rewrite `FRAG_SRC` in `ParticleBackground.tsx` with:
+   - Ashima simplex noise 2D/3D functions (classic GLSL implementation)
+   - 3-level domain warp FBM for organic flow
+   - Time-driven continuous animation
+   - Neon color gradient: black → deep red → orange → magenta → hot white tip
+   - Multi-sample pseudo-bloom: sample field at offset positions and blend additively
+   - Vignette and gamma correction
+2. Remove all dot/grid/cell code from fragment shader
+3. Keep vertex shader unchanged
+4. Keep WebGL setup, resize handler, and RAF loop unchanged
